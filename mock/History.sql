@@ -1,10 +1,12 @@
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (1, '2019-01-08 10:05:06', '2019-01-08 14:05:06', 'Exclusive responsive paradigm', 1, 1);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (2, '2019-02-21 11:05:06', '2019-01-08 12:06:07', 'Managed human-resource open architecture', 1, 1);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (3, '2019-01-15 12:05:06', '2019-01-08 11:05:08', 'Streamlined even-keeled infrastructure', 3, 3);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (4, '2019-03-11 15:05:06', '2019-01-08 10:05:09', 'User-friendly holistic internet solution', 3, 5);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (5, '2019-07-22 16:05:06', '2019-01-08 08:05:10', 'Vision-oriented fresh-thinking service-desk', 5, 5);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (6, '2019-04-13 16:05:06', '2019-01-08 09:05:11', 'Programmable well-modulated secured line', 6, 6);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (7, '2019-08-17 18:05:06', '2019-01-08 15:05:12', 'Programmable demand-driven secured line', 1, 1);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (8, '2019-05-05 16:05:06', '2019-01-08 11:05:13', 'Centralized modular parallelism', 8, 8);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (9, '2019-12-06 11:05:06', '2019-01-08 14:05:14', 'Reduced executive knowledge base', 1, 1);
-insert into "History" (event_id, event_start, event_end, event_description, patient_id, doctor_id) values (10, '2019-11-12 12:05:06', '2019-01-08 13:05:16', 'Down-sized scalable framework', 10, 10);
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (0, '2019-01-08 10:05:06', '2019-01-08 14:05:06', 'Flu case', 1, 0);
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (1, '2019-02-12 11:25:36', '2019-02-12 11:55:06', 'Flu case', 1, 1);
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (2, '2019-02-15 10:05:06', '2019-02-15 11:05:06', 'Cancer case', 2, 2);
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (3, '2019-02-16 11:25:36', '2019-02-16 11:55:06', 'Cancer case', 2, null);
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (4, '2019-02-17 10:05:06', '2019-02-15 10:25:06', 'High pressure case', 4, 3);
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (5, '2019-02-16 11:25:36', '2019-02-16 11:55:06', 'Lyme allergie case', 5, 4);
