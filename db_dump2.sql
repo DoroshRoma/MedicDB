@@ -5,7 +5,7 @@
 -- Dumped from database version 12.1
 -- Dumped by pg_dump version 12.1
 
--- Started on 2019-12-16 09:42:15
+-- Started on 2019-12-16 16:07:15
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -27,13 +27,85 @@ CREATE EXTENSION IF NOT EXISTS adminpack WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 2911 (class 0 OID 0)
+-- TOC entry 2920 (class 0 OID 0)
 -- Dependencies: 1
 -- Name: EXTENSION adminpack; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION adminpack IS 'administrative functions for PostgreSQL';
 
+
+--
+-- TOC entry 231 (class 1255 OID 16599)
+-- Name: add_new_event(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.add_new_event() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+    IF NEW.event_start::date = NEW.event_end::date 
+        and date_trunc('minute', NEW.event_start::time) = date_trunc('minute', NEW.event_end::time) 
+    THEN
+        RAISE EXCEPTION 'The start date cannot be equals to end date';
+    END IF;
+
+    RETURN NEW;
+end;
+$$;
+
+
+ALTER FUNCTION public.add_new_event() OWNER TO postgres;
+
+--
+-- TOC entry 217 (class 1255 OID 16595)
+-- Name: check_chronic_desease(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.check_chronic_desease(patient integer) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+begin
+   IF exists (select p.patient_id, d.desease_category from "Deseases" as d
+   inner join "Patient_Desease" as pd using(desease_id)
+   inner join "Patients" as p using(patient_id) 
+   where p.patient_id = patient and d.desease_category like '%Chronic%')
+    THEN return TRUE;
+    ELSE
+    return FALSE;
+    END IF;
+end;
+$$;
+
+
+ALTER FUNCTION public.check_chronic_desease(patient integer) OWNER TO postgres;
+
+--
+-- TOC entry 230 (class 1255 OID 16598)
+-- Name: is_doctor_busy(integer, date, time without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.is_doctor_busy(doctor integer, event_date date, event_time time without time zone) RETURNS boolean
+    LANGUAGE plpgsql
+    AS $$
+begin
+    IF (select count(*)
+        from "History" as h
+        inner join "Doctor_History" as dh on h.event_id = dh.history_id
+        inner join "Doctors" as d using(doctor_id)
+        where h.event_start::date = event_date
+        and date_trunc('minute', h.event_start::time) = event_time
+        and d.doctor_id = doctor 
+        ) != 0
+        then return TRUE;
+    ELSE
+        return FALSE;
+    END IF; 
+end;
+$$;
+
+
+ALTER FUNCTION public.is_doctor_busy(doctor integer, event_date date, event_time time without time zone) OWNER TO postgres;
 
 SET default_tablespace = '';
 
@@ -235,7 +307,25 @@ CREATE TABLE public."Prescriptions" (
 ALTER TABLE public."Prescriptions" OWNER TO postgres;
 
 --
--- TOC entry 2757 (class 2606 OID 16496)
+-- TOC entry 216 (class 1259 OID 16580)
+-- Name: patients_master; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.patients_master AS
+ SELECT p.surname,
+    d.desease_name,
+    doc.doc_description
+   FROM ((((public."Patients" p
+     JOIN public."Patient_Desease" pd USING (patient_id))
+     JOIN public."Deseases" d USING (desease_id))
+     JOIN public."Patient_Doc" pdoc USING (patient_id))
+     JOIN public."Documents" doc ON ((pdoc.document_id = doc.doc_id)));
+
+
+ALTER TABLE public.patients_master OWNER TO postgres;
+
+--
+-- TOC entry 2764 (class 2606 OID 16496)
 -- Name: Clinics PK_CLINIC; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -244,7 +334,7 @@ ALTER TABLE ONLY public."Clinics"
 
 
 --
--- TOC entry 2759 (class 2606 OID 16527)
+-- TOC entry 2766 (class 2606 OID 16527)
 -- Name: Doctor_Clinic PK_DC; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -253,7 +343,7 @@ ALTER TABLE ONLY public."Doctor_Clinic"
 
 
 --
--- TOC entry 2745 (class 2606 OID 16408)
+-- TOC entry 2752 (class 2606 OID 16408)
 -- Name: Deseases PK_DESEASES; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -262,7 +352,7 @@ ALTER TABLE ONLY public."Deseases"
 
 
 --
--- TOC entry 2767 (class 2606 OID 16564)
+-- TOC entry 2774 (class 2606 OID 16564)
 -- Name: Doctor_History PK_DHIST; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -271,7 +361,7 @@ ALTER TABLE ONLY public."Doctor_History"
 
 
 --
--- TOC entry 2751 (class 2606 OID 16452)
+-- TOC entry 2758 (class 2606 OID 16452)
 -- Name: Doctors PK_DOCTORS; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -280,7 +370,7 @@ ALTER TABLE ONLY public."Doctors"
 
 
 --
--- TOC entry 2747 (class 2606 OID 16421)
+-- TOC entry 2754 (class 2606 OID 16421)
 -- Name: Documents PK_DOCUMENTS; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -289,7 +379,7 @@ ALTER TABLE ONLY public."Documents"
 
 
 --
--- TOC entry 2749 (class 2606 OID 16434)
+-- TOC entry 2756 (class 2606 OID 16434)
 -- Name: History PK_EVENT; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -298,7 +388,7 @@ ALTER TABLE ONLY public."History"
 
 
 --
--- TOC entry 2755 (class 2606 OID 16483)
+-- TOC entry 2762 (class 2606 OID 16483)
 -- Name: Medications PK_MED; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -307,7 +397,7 @@ ALTER TABLE ONLY public."Medications"
 
 
 --
--- TOC entry 2763 (class 2606 OID 16534)
+-- TOC entry 2770 (class 2606 OID 16534)
 -- Name: Patient_Desease PK_PD; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -316,7 +406,7 @@ ALTER TABLE ONLY public."Patient_Desease"
 
 
 --
--- TOC entry 2765 (class 2606 OID 16549)
+-- TOC entry 2772 (class 2606 OID 16549)
 -- Name: Patient_Doc PK_PDOC; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -325,7 +415,7 @@ ALTER TABLE ONLY public."Patient_Doc"
 
 
 --
--- TOC entry 2761 (class 2606 OID 16529)
+-- TOC entry 2768 (class 2606 OID 16529)
 -- Name: Presc_Med PK_PM; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -334,7 +424,7 @@ ALTER TABLE ONLY public."Presc_Med"
 
 
 --
--- TOC entry 2753 (class 2606 OID 16470)
+-- TOC entry 2760 (class 2606 OID 16470)
 -- Name: Prescriptions PK_PRESC; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -343,7 +433,7 @@ ALTER TABLE ONLY public."Prescriptions"
 
 
 --
--- TOC entry 2743 (class 2606 OID 16400)
+-- TOC entry 2750 (class 2606 OID 16400)
 -- Name: Patients Patients_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -352,7 +442,17 @@ ALTER TABLE ONLY public."Patients"
 
 
 --
--- TOC entry 2771 (class 2606 OID 16505)
+-- TOC entry 2787 (class 2620 OID 16611)
+-- Name: History on_add_history_event; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER on_add_history_event BEFORE INSERT ON public."History" FOR EACH ROW EXECUTE FUNCTION public.add_new_event();
+
+ALTER TABLE public."History" DISABLE TRIGGER on_add_history_event;
+
+
+--
+-- TOC entry 2778 (class 2606 OID 16505)
 -- Name: Doctor_Clinic FK_CLINIC; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -361,7 +461,7 @@ ALTER TABLE ONLY public."Doctor_Clinic"
 
 
 --
--- TOC entry 2775 (class 2606 OID 16540)
+-- TOC entry 2782 (class 2606 OID 16540)
 -- Name: Patient_Desease FK_DESEASE; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -370,7 +470,7 @@ ALTER TABLE ONLY public."Patient_Desease"
 
 
 --
--- TOC entry 2770 (class 2606 OID 16500)
+-- TOC entry 2777 (class 2606 OID 16500)
 -- Name: Doctor_Clinic FK_DOCTOR; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -379,7 +479,7 @@ ALTER TABLE ONLY public."Doctor_Clinic"
 
 
 --
--- TOC entry 2778 (class 2606 OID 16565)
+-- TOC entry 2785 (class 2606 OID 16565)
 -- Name: Doctor_History FK_DOCTOR; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -388,7 +488,7 @@ ALTER TABLE ONLY public."Doctor_History"
 
 
 --
--- TOC entry 2777 (class 2606 OID 16555)
+-- TOC entry 2784 (class 2606 OID 16555)
 -- Name: Patient_Doc FK_DOCUMENT; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -397,7 +497,7 @@ ALTER TABLE ONLY public."Patient_Doc"
 
 
 --
--- TOC entry 2779 (class 2606 OID 16570)
+-- TOC entry 2786 (class 2606 OID 16570)
 -- Name: Doctor_History FK_HISTORY; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -406,7 +506,7 @@ ALTER TABLE ONLY public."Doctor_History"
 
 
 --
--- TOC entry 2773 (class 2606 OID 16521)
+-- TOC entry 2780 (class 2606 OID 16521)
 -- Name: Presc_Med FK_MED; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -415,7 +515,7 @@ ALTER TABLE ONLY public."Presc_Med"
 
 
 --
--- TOC entry 2768 (class 2606 OID 16453)
+-- TOC entry 2775 (class 2606 OID 16453)
 -- Name: History FK_PATIENT; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -424,7 +524,7 @@ ALTER TABLE ONLY public."History"
 
 
 --
--- TOC entry 2774 (class 2606 OID 16535)
+-- TOC entry 2781 (class 2606 OID 16535)
 -- Name: Patient_Desease FK_PATIENT; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -433,7 +533,7 @@ ALTER TABLE ONLY public."Patient_Desease"
 
 
 --
--- TOC entry 2776 (class 2606 OID 16550)
+-- TOC entry 2783 (class 2606 OID 16550)
 -- Name: Patient_Doc FK_PATIENT; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -442,7 +542,7 @@ ALTER TABLE ONLY public."Patient_Doc"
 
 
 --
--- TOC entry 2772 (class 2606 OID 16516)
+-- TOC entry 2779 (class 2606 OID 16516)
 -- Name: Presc_Med FK_PRESC; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -451,7 +551,7 @@ ALTER TABLE ONLY public."Presc_Med"
 
 
 --
--- TOC entry 2769 (class 2606 OID 16575)
+-- TOC entry 2776 (class 2606 OID 16575)
 -- Name: History FK_PRESC; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -459,7 +559,7 @@ ALTER TABLE ONLY public."History"
     ADD CONSTRAINT "FK_PRESC" FOREIGN KEY (presc_id) REFERENCES public."Prescriptions"(presc_id) NOT VALID;
 
 
--- Completed on 2019-12-16 09:42:15
+-- Completed on 2019-12-16 16:07:15
 
 --
 -- PostgreSQL database dump complete

@@ -81,7 +81,7 @@ inner join "Documents" as doc on pdoc.document_id = doc.doc_id;
 | Enrich   | Lung Cancer         | Glucose Analysis |
 | Entwisle | Lung Cancer         | Urine analysis   |
 | Entwisle | Flu                 | Urine analysis   |
-7. Create function for check if patient has chronic desease;
+7. Create function to check if patient has chronic desease;
 ```sql
 create or replace function check_chronic_desease(patient integer)
  returns boolean as $$
@@ -100,4 +100,59 @@ $$ LANGUAGE plpgsql;
 ```sql
 select check_chronic_desease(1) # False
 select check_chronic_desease(2) # True
+```
+8. Create function to check if doctor is busy and you need to choose another time of meeting with doctor
+```sql
+
+create or replace function is_doctor_busy(doctor integer, event_date date, event_time time)
+    returns boolean as
+$BODY$
+begin
+    IF (select count(*)
+        from "History" as h
+        inner join "Doctor_History" as dh on h.event_id = dh.history_id
+        inner join "Doctors" as d using(doctor_id)
+        where h.event_start::date = event_date
+        and date_trunc('minute', h.event_start::time) = event_time
+        and d.doctor_id = doctor 
+        ) != 0
+        then return TRUE;
+    ELSE
+        return FALSE;
+    END IF; 
+end;
+$BODY$
+LANGUAGE plpgsql;
+```
+```sql
+select is_doctor_busy(0, '2019-01-08', '10:05:00'); # True
+select is_doctor_busy(1, '2019-01-08', '10:05:00'); # False
+```
+9. Create a trigger which doesn't let you to insert the same start and end date into History table.
+```sql
+create or replace function add_new_event()
+    returns trigger as 
+$BODY$
+begin
+    IF NEW.event_start::date = NEW.event_end::date 
+        and date_trunc('minute', NEW.event_start::time) = date_trunc('minute', NEW.event_end::time) 
+    THEN
+        RAISE EXCEPTION 'The start date cannot be equals to end date';
+    END IF;
+
+    RETURN NEW;
+end;
+$BODY$ LANGUAGE plpgsql;
+
+CREATE trigger on_add_history_event
+  BEFORE INSERT
+  ON "History"
+  FOR EACH ROW
+  EXECUTE PROCEDURE add_new_event();
+```
+```sql
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (100, '2019-01-08 10:05:06', '2019-01-08 10:05:06', 'Flu case', 1, 0); # Error
+insert into "History" (event_id, event_start, event_end, event_description, patient_id, presc_id)
+values (101, '2019-01-08 10:05:06', '2019-01-08 12:05:06', 'Flu case', 1, 0); # Without Error
 ```
